@@ -39,50 +39,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- 함수 --- //
 
-  // 1. 전체 서비스 목록 표시
-  const displayServices = async () => {
-    serviceList.innerHTML = '<h2>전체 서비스 목록</h2>';
-    try {
-      const querySnapshot = await db.collection('services').get();
-      if (querySnapshot.empty) {
-        serviceList.innerHTML += '<p>등록된 서비스가 없습니다.</p>';
-        return;
-      }
-      querySnapshot.forEach(doc => {
+  // 1. 대시보드 표시
+  const displayDashboard = async () => {
+    dashboard.innerHTML = '<h2>내 대시보드</h2>';
+    if (currentUser.following.length === 0) {
+      dashboard.innerHTML += '<p>팔로우하는 서비스가 없습니다.</p>';
+      return;
+    }
+    const servicePromises = currentUser.following.map(id => db.collection('services').doc(id).get());
+    const serviceDocs = await Promise.all(servicePromises);
+    serviceDocs.forEach(doc => {
+      if (doc.exists) {
         const service = doc.data();
-        const serviceId = doc.id;
-        const isFollowing = currentUser.following.includes(serviceId);
-
         const item = document.createElement('div');
         item.className = 'service-item';
         const statusClass = service.status === '정상' ? 'ok' : 'warning';
-
-        item.innerHTML = `
-          <span class="name">${service.name}</span>
-          <span class="status ${statusClass}">${service.status}</span>
-          <button 
-            class="${isFollowing ? 'unfollow-btn' : 'follow-btn'}" 
-            data-id="${serviceId}">
-            ${isFollowing ? '팔로잉' : '팔로우'}
-          </button>
-        `;
-        serviceList.appendChild(item);
-      });
-    } catch (error) {
-      console.error("서비스 목록 로딩 오류: ", error);
-      serviceList.innerHTML += '<p>서비스 목록을 불러오는 데 실패했습니다.</p>';
-    }
+        item.innerHTML = `<span class="name">${service.name}</span><span class="status ${statusClass}">${service.status}</span>`;
+        dashboard.appendChild(item);
+      }
+    });
   };
 
-  // 2. 팔로우/언팔로우 처리
+  // 2. 전체 서비스 목록 표시
+  const displayServices = async () => {
+    serviceList.innerHTML = '<h2>전체 서비스 목록</h2>';
+    const querySnapshot = await db.collection('services').get();
+    querySnapshot.forEach(doc => {
+      const service = doc.data();
+      const serviceId = doc.id;
+      const isFollowing = currentUser.following.includes(serviceId);
+      const item = document.createElement('div');
+      item.className = 'service-item';
+      const statusClass = service.status === '정상' ? 'ok' : 'warning';
+      item.innerHTML = `
+        <span class="name">${service.name}</span>
+        <span class="status ${statusClass}">${service.status}</span>
+        <button class="${isFollowing ? 'unfollow-btn' : 'follow-btn'}" data-id="${serviceId}">${isFollowing ? '팔로잉' : '팔로우'}</button>
+      `;
+      serviceList.appendChild(item);
+    });
+  };
+
+  // 3. 팔로우/언팔로우 처리
   const handleFollow = async (e) => {
     if (!currentUser.loggedIn) return;
-
     const button = e.target;
     const serviceId = button.dataset.id;
     const isFollowing = button.classList.contains('unfollow-btn');
     const userRef = db.collection('users').doc(currentUser.uid);
-
     try {
       if (isFollowing) {
         await userRef.update({ following: firebase.firestore.FieldValue.arrayRemove(serviceId) });
@@ -91,44 +95,35 @@ document.addEventListener('DOMContentLoaded', () => {
         await userRef.set({ following: firebase.firestore.FieldValue.arrayUnion(serviceId) }, { merge: true });
         currentUser.following.push(serviceId);
       }
+      displayDashboard();
       displayServices();
-      // TODO: 대시보드도 업데이트
     } catch (error) {
-      console.error('팔로우/언팔로우 오류:', error);
-      alert('작업에 실패했습니다.');
+      console.error('Follow/Unfollow Error:', error);
     }
   };
 
   // --- 이벤트 리스너 --- //
 
   signupBtn.addEventListener('click', () => {
-    const email = emailInput.value;
-    const password = passwordInput.value;
-    if (!email || !password) { alert('이메일과 비밀번호를 모두 입력해주세요.'); return; }
+    const email = emailInput.value, password = passwordInput.value;
+    if (!email || !password) return alert('이메일과 비밀번호를 입력하세요.');
     auth.createUserWithEmailAndPassword(email, password)
-      .then(cred => { 
-        alert('회원가입이 완료되었습니다.'); 
-        emailInput.value = ''; 
-        passwordInput.value = ''; 
-      })
+      .then(() => { alert('회원가입 성공!'); emailInput.value = ''; passwordInput.value = ''; })
       .catch(err => alert('회원가입 오류: ' + err.message));
   });
 
   loginBtn.addEventListener('click', () => {
-    const email = emailInput.value;
-    const password = passwordInput.value;
-    if (!email || !password) { alert('이메일과 비밀번호를 모두 입력해주세요.'); return; }
+    const email = emailInput.value, password = passwordInput.value;
+    if (!email || !password) return alert('이메일과 비밀번호를 입력하세요.');
     auth.signInWithEmailAndPassword(email, password)
-      .then(cred => {
-        console.log("로그인 성공");
-      })
+      .then(() => { console.log('로그인 성공'); })
       .catch(err => alert('로그인 오류: ' + err.message));
   });
 
   logoutBtn.addEventListener('click', () => auth.signOut());
 
   serviceList.addEventListener('click', (e) => {
-    if (e.target.matches('.follow-btn') || e.target.matches('.unfollow-btn')) {
+    if (e.target.matches('.follow-btn, .unfollow-btn')) {
       handleFollow(e);
     }
   });
@@ -138,22 +133,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (user) {
       currentUser.loggedIn = true;
       currentUser.uid = user.uid;
-
       const userRef = db.collection('users').doc(user.uid);
       const userDoc = await userRef.get();
-      if (userDoc.exists) {
-        currentUser.following = userDoc.data().following || [];
-      } else {
-        currentUser.following = [];
-      }
+      currentUser.following = userDoc.exists ? userDoc.data().following || [] : [];
 
       loginForm.classList.add('hidden');
       userInfo.classList.remove('hidden');
       userEmail.textContent = user.email;
       
-      displayServices();
-      // TODO: 대시보드 표시
-
+      await displayDashboard();
+      await displayServices();
     } else {
       currentUser = { loggedIn: false, uid: null, following: [] };
       loginForm.classList.remove('hidden');
