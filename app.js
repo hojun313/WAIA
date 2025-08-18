@@ -16,8 +16,6 @@ const db = firebase.firestore();
 
 // 3. 앱 로직
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("애플리케이션 로직 시작");
-
   // --- DOM 요소 --- //
   const loginForm = document.getElementById('login-form');
   const userInfo = document.getElementById('user-info');
@@ -39,7 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- 함수 --- //
 
-  // 1. 대시보드 표시
   const displayDashboard = async () => {
     dashboard.innerHTML = '<h2>내 대시보드</h2>';
     if (currentUser.following.length === 0) {
@@ -60,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  // 2. 전체 서비스 목록 표시
   const displayServices = async () => {
     serviceList.innerHTML = '<h2>전체 서비스 목록</h2>';
     const querySnapshot = await db.collection('services').get();
@@ -69,23 +65,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const serviceId = doc.id;
       const isFollowing = currentUser.following.includes(serviceId);
       const item = document.createElement('div');
-      item.className = 'service-item';
-      const statusClass = service.status === '정상' ? 'ok' : 'warning';
-      item.innerHTML = `
-        <span class="name">${service.name}</span>
-        <span class="status ${statusClass}">${service.status}</span>
-        <button class="${isFollowing ? 'unfollow-btn' : 'follow-btn'}" data-id="${serviceId}">${isFollowing ? '팔로잉' : '팔로우'}</button>
-      `;
+      item.className = `service-item ${isFollowing ? 'is-followed' : 'not-followed'}`;
+      item.dataset.id = serviceId;
+      item.innerHTML = `<span class="name">${service.name}</span>`;
       serviceList.appendChild(item);
     });
   };
 
-  // 3. 팔로우/언팔로우 처리
-  const handleFollow = async (e) => {
+  const handleFollow = async (serviceId, isFollowing) => {
     if (!currentUser.loggedIn) return;
-    const button = e.target;
-    const serviceId = button.dataset.id;
-    const isFollowing = button.classList.contains('unfollow-btn');
     const userRef = db.collection('users').doc(currentUser.uid);
     try {
       if (isFollowing) {
@@ -95,8 +83,8 @@ document.addEventListener('DOMContentLoaded', () => {
         await userRef.set({ following: firebase.firestore.FieldValue.arrayUnion(serviceId) }, { merge: true });
         currentUser.following.push(serviceId);
       }
-      displayDashboard();
-      displayServices();
+      await displayDashboard();
+      await displayServices();
     } catch (error) {
       console.error('Follow/Unfollow Error:', error);
     }
@@ -108,7 +96,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const email = emailInput.value, password = passwordInput.value;
     if (!email || !password) return alert('이메일과 비밀번호를 입력하세요.');
     auth.createUserWithEmailAndPassword(email, password)
-      .then(() => { alert('회원가입 성공!'); emailInput.value = ''; passwordInput.value = ''; })
+      .then(() => { 
+        alert('회원가입 성공!'); 
+        emailInput.value = ''; 
+        passwordInput.value = ''; 
+      })
       .catch(err => alert('회원가입 오류: ' + err.message));
   });
 
@@ -116,15 +108,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const email = emailInput.value, password = passwordInput.value;
     if (!email || !password) return alert('이메일과 비밀번호를 입력하세요.');
     auth.signInWithEmailAndPassword(email, password)
-      .then(() => { console.log('로그인 성공'); })
+      .then(() => { 
+        console.log('로그인 성공'); 
+      })
       .catch(err => alert('로그인 오류: ' + err.message));
   });
 
   logoutBtn.addEventListener('click', () => auth.signOut());
 
   serviceList.addEventListener('click', (e) => {
-    if (e.target.matches('.follow-btn, .unfollow-btn')) {
-      handleFollow(e);
+    const targetItem = e.target.closest('.service-item');
+    if (targetItem) {
+      handleFollow(targetItem.dataset.id, targetItem.classList.contains('is-followed'));
     }
   });
 

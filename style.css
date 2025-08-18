@@ -75,8 +75,15 @@ h1 {
     background-color: #c82333;
 }
 
+#user-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 #user-info p {
     font-size: 1.1em;
+    margin: 0;
 }
 
 .hidden {
@@ -84,8 +91,19 @@ h1 {
 }
 
 /* --- Service List & Dashboard Styles --- */
-#dashboard, #service-list {
+#dashboard {
     margin-top: 40px;
+    border: 2px solid #007bff;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+#service-list {
+    margin-top: 40px;
+    /* Flexbox layout for grid */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px; /* Space between items */
 }
 
 #dashboard h2, #service-list h2 {
@@ -93,15 +111,11 @@ h1 {
     border-bottom: 2px solid #f0f2f5;
     padding-bottom: 10px;
     margin-bottom: 20px;
+    width: 100%; /* Make header take full width */
 }
 
-#dashboard {
-    border: 2px solid #007bff;
-    padding: 20px;
-    border-radius: 8px;
-}
-
-.service-item {
+/* Dashboard Item Styles */
+#dashboard .service-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -109,20 +123,43 @@ h1 {
     border: 1px solid #e0e0e0;
     border-radius: 8px;
     margin-bottom: 10px;
-    transition: box-shadow 0.2s;
 }
 
-.service-item:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-.service-item .name {
+#dashboard .service-item .name {
     font-weight: bold;
     font-size: 1.1em;
 }
 
-.service-item .status {
+#dashboard .service-item .status {
     font-weight: bold;
+}
+
+/* Service List Item Styles */
+#service-list .service-item {
+    padding: 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.1s ease-in-out, box-shadow 0.2s;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.1em;
+    color: white;
+    /* Flex item properties */
+    flex-grow: 1;
+    flex-basis: 200px; /* Adjust for number of columns */
+}
+
+#service-list .service-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+#service-list .not-followed {
+    background-color: #28a745; /* Green */
+}
+
+#service-list .is-followed {
+    background-color: #6c757d; /* Gray */
 }
 
 .status.ok {
@@ -131,32 +168,4 @@ h1 {
 
 .status.warning {
     color: #dc3545; /* Red */
-}
-
-.follow-btn, .unfollow-btn {
-    padding: 8px 15px;
-    font-size: 14px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background-color 0.2s;
-}
-
-.follow-btn {
-    background-color: #28a745;
-    color: white;
-}
-
-.follow-btn:hover {
-    background-color: #218838;
-}
-
-.unfollow-btn {
-    background-color: #6c757d;
-    color: white;
-}
-
-.unfollow-btn:hover {
-    background-color: #5a6268;
 }
