@@ -16,7 +16,8 @@ const db = firebase.firestore();
 
 // 3. 앱 로직
 document.addEventListener('DOMContentLoaded', () => {
-  // --- DOM 요소 --- //
+  // ... (The existing app logic) ...
+  // --- DOM 요소 ---
   const loginForm = document.getElementById('login-form');
   const userInfo = document.getElementById('user-info');
   const userEmail = document.getElementById('user-email');
@@ -148,3 +149,52 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+// --- Helper Functions (for admin use in console) ---
+
+/**
+ * Adds multiple services to Firestore in a batch.
+ * HOW TO USE:
+ * 1. Modify the 'servicesToAdd' array below.
+ * 2. Open the browser developer console (F12).
+ * 3. Type addServicesBatch() and press Enter.
+ */
+async function addServicesBatch() {
+  const servicesToAdd = [
+    { name: 'Kakao', status: '확인전' },
+    { name: 'Toss', status: '확인전' },
+    { name: 'Coupang', status: '확인전' },
+    { name: 'Baemin', status: '확인전' },
+    { name: 'Instagram', status: '확인전' },
+    { name: 'Twitter', status: '확인전' },
+    { name: 'Netflix', status: '확인전' },
+    { name: 'Disney+', status: '확인전' },
+    { name: 'Apple TV+', status: '확인전' },
+    { name: 'Hulu', status: '확인전' },
+    { name: 'Amazon Prime Video', status: '확인전' },
+    { name: 'YouTube', status: '확인전' }
+  ];
+
+  console.log(`Starting to add ${servicesToAdd.length} services...`);
+  let addedCount = 0;
+  let skippedCount = 0;
+
+  for (const service of servicesToAdd) {
+    try {
+      const querySnapshot = await db.collection('services').where('name', '==', service.name).get();
+      if (querySnapshot.empty) {
+        await db.collection('services').add(service);
+        console.log(`Successfully added: ${service.name}`);
+        addedCount++;
+      } else {
+        console.log(`Skipped (already exists): ${service.name}`);
+        skippedCount++;
+      }
+    } catch (error) {
+      console.error(`Failed to add ${service.name}:`, error);
+    }
+  }
+
+  console.log(`Batch process finished. Added: ${addedCount}, Skipped: ${skippedCount}.`);
+  console.log("Please refresh the page to see the new services.");
+}
