@@ -8,8 +8,20 @@
 </head>
 <body>
     <div id="app">
-        <h1>개인정보 처리방침 알리미</h1>
-        <div id="auth-container"></div>
+        <h1>WAIA: 개인정보 처리방침 알리미</h1>
+                <div id="auth-container">
+            <div id="login-form">
+                <h3>로그인 또는 회원가입</h3>
+                <input type="email" id="email" placeholder="이메일" />
+                <input type="password" id="password" placeholder="비밀번호" />
+                <button id="signup-btn">회원가입</button>
+                <button id="login-btn">로그인</button>
+            </div>
+            <div id="user-info" class="hidden">
+                <p><span id="user-email"></span>님, 환영합니다.</p>
+                <button id="logout-btn">로그아웃</button>
+            </div>
+        </div>
         <div id="service-list"></div>
         <div id="dashboard"></div>
     </div>
