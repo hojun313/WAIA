@@ -126,12 +126,44 @@ h1 {
 }
 
 #dashboard .service-item .name {
+    flex: 1;
+    text-align: left;
     font-weight: bold;
     font-size: 1.1em;
 }
 
 #dashboard .service-item .status {
+    flex: 1;
+    text-align: center;
     font-weight: bold;
+}
+
+#dashboard .service-item .service-actions {
+    flex: 1;
+    text-align: right;
+}
+
+.policy-link-btn {
+    display: inline-block;
+    padding: 6px 12px;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 0.9em;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.policy-link-btn.policy-btn-ok {
+    background-color: #28a745; /* Green */
+}
+
+.policy-link-btn.policy-btn-warning {
+    background-color: #ffc107; /* Orange */
+}
+
+.policy-link-btn:hover {
+    opacity: 0.9;
 }
 
 /* Service List Item Styles */
@@ -180,5 +212,5 @@ h1 {
 }
 
 .status.warning {
-    color: #dc3545; /* Red */
+    color: #ffc107; /* Orange */
 }

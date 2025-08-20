@@ -51,8 +51,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const service = doc.data();
         const item = document.createElement('div');
         item.className = 'service-item';
+
         const statusClass = service.status === '정상' ? 'ok' : 'warning';
-        item.innerHTML = `<span class="name">${service.name}</span><span class="status ${statusClass}">${service.status}</span>`;
+        const buttonClass = service.status === '정상' ? 'policy-btn-ok' : 'policy-btn-warning';
+
+        // 템플릿 리터럴을 사용하여 세 요소를 직접 생성
+        item.innerHTML = `
+          <span class="name">${service.name}</span>
+          <span class="status ${statusClass}">${service.status}</span>
+          <div class="service-actions">
+            ${service.policyUrl ? `<a href="${service.policyUrl}" target="_blank" class="policy-link-btn ${buttonClass}">원문 보기</a>` : ''}
+          </div>
+        `;
+
         dashboard.appendChild(item);
       }
     });
@@ -245,4 +256,75 @@ async function initializeFollowerCounts() {
   } catch (error) {
     console.error("Error initializing follower counts:", error);
   }
+}
+
+/**
+ * Updates existing services with policy URLs and initializes lastHash.
+ * HOW TO USE:
+ * 1. Modify the 'serviceUrls' object inside the function.
+ * 2. Open the browser developer console (F12).
+ * 3. Type updateServicesWithUrls() and press Enter.
+ */
+async function updateServicesWithUrls() {
+  const serviceUrls = {
+    'Kakao': 'https://www.kakao.com/policy/privacy',
+    'Toss': 'https://toss.im/privacy',
+    'Coupang': 'https://privacy.coupang.com/ko/',
+    'Baemin': '', // 배달의민족 URL을 여기에 추가하세요.
+    'Instagram': 'https://privacycenter.instagram.com/policy',
+    'Twitter': 'https://twitter.com/ko/privacy',
+    'Netflix': 'https://help.netflix.com/legal/privacy',
+    'Disney+': 'https://www.disneyplus.com/ko-kr/legal/privacy-policy',
+    'Apple TV+': 'https://www.apple.com/legal/privacy/kr/',
+    'Hulu': '', // Hulu URL을 여기에 추가하세요.
+    'Amazon Prime Video': 'https://www.primevideo.com/ww-av-legal/privacy/ref=av_auth_privacy_symbol',
+    'YouTube': 'https://policies.google.com/privacy',
+    'Naver': 'https://policy.naver.com/policy/privacy.html',
+    'Google': 'https://policies.google.com/privacy',
+    'Facebook': 'https://www.facebook.com/privacy/policy'
+  };
+
+  console.log("Starting to update services with URLs and hashes...");
+  const batch = db.batch();
+  const querySnapshot = await db.collection('services').get();
+  let updatedCount = 0;
+
+  for (const doc of querySnapshot.docs) {
+    const service = doc.data();
+    const url = serviceUrls[service.name];
+    if (url !== undefined) {
+      batch.update(doc.ref, { 
+        policyUrl: url,
+        lastHash: '' // Initialize empty hash
+      });
+      updatedCount++;
+      console.log(`Preparing update for: ${service.name}`);
+    } else {
+      console.log(`Skipping (URL not found): ${service.name}`);
+    }
+  }
+
+  try {
+    await batch.commit();
+    console.log(`Successfully updated ${updatedCount} services.`);
+    console.log("Services are now ready for the crawling function.");
+  } catch (error) {
+    console.error("Error updating services with URLs:", error);
+  }
+}
+
+/**
+ * Logs all service names and their policy URLs to the console.
+ * HOW TO USE:
+ * 1. Open the browser developer console (F12).
+ * 2. Type checkServiceUrls() and press Enter.
+ */
+async function checkServiceUrls() {
+  console.log("Checking service URLs...");
+  const querySnapshot = await db.collection('services').get();
+  querySnapshot.forEach(doc => {
+    const service = doc.data();
+    console.log(`Service: ${service.name}, Policy URL: ${service.policyUrl || 'N/A'}`);
+  });
+  console.log("Check complete.");
 }
