@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const displayServices = async () => {
     serviceList.innerHTML = '<h2>전체 서비스 목록</h2>';
-    const querySnapshot = await db.collection('services').get();
+    const querySnapshot = await db.collection('services').orderBy('name').get();
     querySnapshot.forEach(doc => {
       const service = doc.data();
       const serviceId = doc.id;
@@ -68,26 +68,50 @@ document.addEventListener('DOMContentLoaded', () => {
       const item = document.createElement('div');
       item.className = `service-item ${isFollowing ? 'is-followed' : 'not-followed'}`;
       item.dataset.id = serviceId;
-      item.innerHTML = `<span class="name">${service.name}</span>`;
+      item.innerHTML = `
+        <span class="name">${service.name}</span>
+        <span class="follower-count">${service.followerCount || 0}명 팔로우</span>
+      `;
       serviceList.appendChild(item);
     });
   };
 
   const handleFollow = async (serviceId, isFollowing) => {
     if (!currentUser.loggedIn) return;
+
     const userRef = db.collection('users').doc(currentUser.uid);
+    const serviceRef = db.collection('services').doc(serviceId);
+    const increment = firebase.firestore.FieldValue.increment(isFollowing ? -1 : 1);
+
     try {
+      // 트랜잭션을 사용하여 사용자 데이터와 서비스 데이터를 함께 업데이트
+      await db.runTransaction(async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists && !isFollowing) {
+            transaction.set(userRef, { following: [serviceId] });
+        } else {
+            transaction.update(userRef, {
+                following: isFollowing 
+                    ? firebase.firestore.FieldValue.arrayRemove(serviceId)
+                    : firebase.firestore.FieldValue.arrayUnion(serviceId)
+            });
+        }
+        transaction.update(serviceRef, { followerCount: increment });
+      });
+
+      // 로컬 상태 업데이트
       if (isFollowing) {
-        await userRef.update({ following: firebase.firestore.FieldValue.arrayRemove(serviceId) });
         currentUser.following = currentUser.following.filter(id => id !== serviceId);
       } else {
-        await userRef.set({ following: firebase.firestore.FieldValue.arrayUnion(serviceId) }, { merge: true });
         currentUser.following.push(serviceId);
       }
+
+      // UI 새로고침
       await displayDashboard();
       await displayServices();
+
     } catch (error) {
-      console.error('Follow/Unfollow Error:', error);
+      console.error('Follow/Unfollow Transaction Error:', error);
     }
   };
 
@@ -161,18 +185,18 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 async function addServicesBatch() {
   const servicesToAdd = [
-    { name: 'Kakao', status: '확인전' },
-    { name: 'Toss', status: '확인전' },
-    { name: 'Coupang', status: '확인전' },
-    { name: 'Baemin', status: '확인전' },
-    { name: 'Instagram', status: '확인전' },
-    { name: 'Twitter', status: '확인전' },
-    { name: 'Netflix', status: '확인전' },
-    { name: 'Disney+', status: '확인전' },
-    { name: 'Apple TV+', status: '확인전' },
-    { name: 'Hulu', status: '확인전' },
-    { name: 'Amazon Prime Video', status: '확인전' },
-    { name: 'YouTube', status: '확인전' }
+    { name: 'Kakao', status: '확인전', followerCount: 0 },
+    { name: 'Toss', status: '확인전', followerCount: 0 },
+    { name: 'Coupang', status: '확인전', followerCount: 0 },
+    { name: 'Baemin', status: '확인전', followerCount: 0 },
+    { name: 'Instagram', status: '확인전', followerCount: 0 },
+    { name: 'Twitter', status: '확인전', followerCount: 0 },
+    { name: 'Netflix', status: '확인전', followerCount: 0 },
+    { name: 'Disney+', status: '확인전', followerCount: 0 },
+    { name: 'Apple TV+', status: '확인전', followerCount: 0 },
+    { name: 'Hulu', status: '확인전', followerCount: 0 },
+    { name: 'Amazon Prime Video', status: '확인전', followerCount: 0 },
+    { name: 'YouTube', status: '확인전', followerCount: 0 }
   ];
 
   console.log(`Starting to add ${servicesToAdd.length} services...`);
@@ -197,4 +221,28 @@ async function addServicesBatch() {
 
   console.log(`Batch process finished. Added: ${addedCount}, Skipped: ${skippedCount}.`);
   console.log("Please refresh the page to see the new services.");
+}
+
+/**
+ * Initializes or resets the followerCount for all services to 0.
+ * HOW TO USE:
+ * 1. Open the browser developer console (F12).
+ * 2. Type initializeFollowerCounts() and press Enter.
+ */
+async function initializeFollowerCounts() {
+  console.log("Starting to initialize follower counts for all services to 0...");
+  const batch = db.batch();
+  const querySnapshot = await db.collection('services').get();
+  
+  querySnapshot.forEach(doc => {
+    batch.update(doc.ref, { followerCount: 0 });
+  });
+
+  try {
+    await batch.commit();
+    console.log(`Successfully initialized follower counts for ${querySnapshot.size} services.`);
+    console.log("Please refresh the page to see the changes.");
+  } catch (error) {
+    console.error("Error initializing follower counts:", error);
+  }
 }
