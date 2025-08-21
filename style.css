@@ -162,6 +162,10 @@ h1 {
     background-color: #ffc107; /* Orange */
 }
 
+.policy-link-btn.policy-btn-error {
+    background-color: #dc3545; /* Red */
+}
+
 .policy-link-btn:hover {
     opacity: 0.9;
 }

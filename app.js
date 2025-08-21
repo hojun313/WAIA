@@ -59,8 +59,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const item = document.createElement('div');
         item.className = 'service-item';
 
-        const statusClass = service.status === '정상' ? 'ok' : 'warning';
-        const buttonClass = service.status === '정상' ? 'policy-btn-ok' : 'policy-btn-warning';
+        let statusClass = 'warning';
+        let buttonClass = 'policy-btn-warning';
+
+        if (service.status === '정상') {
+          statusClass = 'ok';
+          buttonClass = 'policy-btn-ok';
+        } else if (service.status.startsWith('경고')) {
+          statusClass = 'error';
+          buttonClass = 'policy-btn-error';
+        }
 
         // 템플릿 리터럴을 사용하여 세 요소를 직접 생성
         item.innerHTML = `
