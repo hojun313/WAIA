@@ -16,7 +16,6 @@ const db = firebase.firestore();
 
 // 3. 앱 로직
 document.addEventListener('DOMContentLoaded', () => {
-  // ... (The existing app logic) ...
   // --- DOM 요소 ---
   const loginForm = document.getElementById('login-form');
   const userInfo = document.getElementById('user-info');
@@ -28,6 +27,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const logoutBtn = document.getElementById('logout-btn');
   const serviceList = document.getElementById('service-list');
   const dashboard = document.getElementById('dashboard');
+
+  // Feedback Modal Elements
+  const feedbackModal = document.getElementById('feedback-modal');
+  const openFeedbackBtn = document.getElementById('open-feedback-btn');
+  const closeBtn = document.querySelector('.close-btn');
+  const feedbackForm = document.getElementById('feedback-form');
+  const feedbackMessage = document.getElementById('feedback-message');
+
 
   // --- 앱 상태 --- //
   let currentUser = {
@@ -158,6 +165,48 @@ document.addEventListener('DOMContentLoaded', () => {
       handleFollow(targetItem.dataset.id, targetItem.classList.contains('is-followed'));
     }
   });
+
+  // --- Feedback Modal Listeners ---
+  openFeedbackBtn.addEventListener('click', () => {
+    feedbackModal.classList.remove('hidden');
+  });
+
+  closeBtn.addEventListener('click', () => {
+    feedbackModal.classList.add('hidden');
+  });
+
+  window.addEventListener('click', (e) => {
+    if (e.target == feedbackModal) {
+      feedbackModal.classList.add('hidden');
+    }
+  });
+
+  feedbackForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const message = feedbackMessage.value.trim();
+    if (!message) {
+      alert('내용을 입력해주세요.');
+      return;
+    }
+
+    try {
+      await db.collection('feedback').add({
+        message: message,
+        userId: currentUser.uid, // null if not logged in
+        userEmail: auth.currentUser ? auth.currentUser.email : 'anonymous',
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      
+      feedbackMessage.value = '';
+      feedbackModal.classList.add('hidden');
+      alert('소중한 의견 감사합니다!');
+
+    } catch (error) {
+      console.error("Error sending feedback: ", error);
+      alert('오류가 발생했습니다. 다시 시도해주세요.');
+    }
+  });
+
 
   // --- 인증 상태 변경 감지 --- //
   auth.onAuthStateChanged(async (user) => {
